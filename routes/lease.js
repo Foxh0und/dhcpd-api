@@ -1,30 +1,28 @@
 const express = require("express");
-const fs = require("fs");
-const { default: parseLease } = require("dhcpd-node/dist/dhcpd-lease-parser");
-require("dotenv").config();
+const service = require("..//service/dhcpdService");
 
 const router = express.Router();
 
-router.get("", (request, response) => {
-  fs.readFile(process.env.LEASE_PATH, "utf8", function (err, data) {
-    if (err) {
-      switch (err.errno) {
-        case -2:
-          console.log(err);
-          response.status(404).json({ msg: err.message });
-          return;
-        default:
-          break;
-      }
-    }
-    const leases = parseLease(data);
+router.get("/leases", async (request, response) => {
+  try {
+    const leases = await service.getLeases();
     if (leases.length === 0) {
-      response.status(204);
+      response.status(204).send();
       return;
     }
-
     response.status(200).json(leases);
-  });
+  } catch (err) {
+    response.status(404).json({ msg: err.message });
+  }
+});
+
+router.get("/config", async (request, response) => {
+  try {
+    const config = await service.getConfig();
+    return response.status(200).json(config);
+  } catch (err) {
+    response.status(404).json({ msg: err.message });
+  }
 });
 
 module.exports = router;
